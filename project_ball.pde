@@ -66,13 +66,21 @@ class Ball{
   boolean getMoving(){
     return moving;
   }
+  
+  int getKey(){
+    return ballKeyCode;
+  }
+  
+  void setKey(int code){
+    ballKeyCode = code;
+  }
 }
 
 // set of global variables 
 ArrayList<Ball> balls = new ArrayList<Ball>();
+
 int gameScreen = 0;
 int gravity = 1;
-Ball b;
 
 void setup(){
   size(500,500);
@@ -81,15 +89,12 @@ void setup(){
     Ball ball = new Ball();
     ball.setX(20 + 20*i);
     ball.setY(height/5);
-    ball.setColor(color(0));
+    ball.setColor(color(i * 5));
     ball.setSize(20);
     balls.add(ball);
   }
   
   drawBalls();
-  int i = (int)random(9);
-  balls.get(i).setMoving(true);
-  b = balls.get(i);
 }
 
 void draw(){
@@ -106,6 +111,9 @@ void initScreen(){
   background(0);
   textAlign(CENTER);
   text("Click to start", height/2, width/2);
+  if (mousePressed){
+    startGame();
+  }
 }
 
 void gameScreen(){
@@ -114,17 +122,7 @@ void gameScreen(){
   drawBalls();
   applyGravity();
   keepInScreen();
-  if (keyPressed){
-    for (int i = 0; i < balls.size(); i++){
-      if (balls.get(i).getMoving()){
-        balls.get(i).setMoving(false);
-        println("hah");
-        balls.get(i).setSpeed(0);
-        balls.get(i).setY(height/5);
-      }
-    }
     
-  }
 }
 
 void gameOverScreen(){
@@ -133,28 +131,29 @@ void gameOverScreen(){
 
 void drawBalls(){
   for (int i = 0; i < balls.size(); i++){
+    fill(random(255), random(255), random(255));
     ellipse(balls.get(i).getX(),balls.get(i).getY(), balls.get(i).getSize(), balls.get(i).getSize());
   }
 }
 
 void applyGravity(){
-  if (b.getMoving()){
-    b.setSpeed(b.getSpeed() + gravity);
-    b.setY(b.getY() + b.getSpeed());
+  for (int i = 0; i < balls.size(); i++) {
+    if (balls.get(i).getMoving()){
+      balls.get(i).setSpeed(balls.get(i).getSpeed() + gravity);
+      balls.get(i).setY(balls.get(i).getY() + balls.get(i).getSpeed());
+    }
   }
 }
 
 void bounceBottom(int surface, Ball ball){
   ball.setY (surface - (ball.getSize()/2));
-  ball.setSpeed(b.getSpeed() * -1);
-  ball.setMoving(true);
-  //ball.setY (height - (ball.getSize()/2));
+  ball.setSpeed(ball.getSpeed() * -1);
 }
 
-/*void bounceTop(Ball ball){
-  ball.setY(b.getSize()/2);
-  ball.setSpeed(b.getSpeed() * -1);
-}*/
+void bounceTop(int surface, Ball ball){
+  ball.setY(surface + ball.getSize()/2);
+  ball.setSpeed(ball.getSpeed() * -1);
+}
 
 void keepInScreen(){
   for (int i = 0; i < balls.size(); i++){
@@ -162,28 +161,31 @@ void keepInScreen(){
            bounceBottom(height, balls.get(i));
       }
       
-      /*if (balls.get(i).getMoving() && (balls.get(i).getY() - (balls.get(i).getSize()/2) < height/4)){
-          balls.get(i).setMoving(false);
-          println("hah");
-          balls.get(i).setSpeed(0);
-          balls.get(i).setY(height/5);
-      }*/
+      if (balls.get(i).getY() - (balls.get(i).getSize()/2) < height/4){
+          bounceTop(height/4,balls.get(i));
+      }
          
-  }
-}
-
-public void mousePressed(){
-  if (gameScreen == 0){
-    startGame();
   }
 }
 
 public void keyPressed(){
   if (keyCode == 8){
     gameScreen = 2;
+  } else if (keyCode > 64 && keyCode < 88){
+    movingRoutine(keyCode);
   }
 }
 
 void startGame(){
   gameScreen = 1;
+}
+
+void movingRoutine(int code){
+  int keyC = code - 65;
+  if (balls.get(keyC).getMoving()){
+      balls.get(keyC).setMoving(false);
+      balls.get(keyC).setSpeed(0);
+    } else { 
+      balls.get(keyC).setMoving(true);
+    }
 }
