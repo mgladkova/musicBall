@@ -125,6 +125,7 @@ class SineInstrument implements Instrument
 
 // all the balls on the screen stored in an array
 ArrayList<Ball> balls = new ArrayList<Ball>();
+String[] pitches = {"C3","D3","E3","F3","G3","A3","B3","C4","D4","E4","F4","G4","A4","B4","C5","D5","E5","F5","G5","A5","B5"};
 
 // initial screen mode
 int gameScreen = 0;
@@ -175,7 +176,7 @@ void gameReloadScreen(){
 // draws all the balls in the current positions
 void drawBalls(){
   for (int i = 0; i < balls.size(); i++){
-    fill(random(255), random(255), random(255));
+    fill(map(balls.get(i).getY(), height/5, height, 255, 0));
     ellipse(balls.get(i).getX(),balls.get(i).getY(), balls.get(i).getSize(), balls.get(i).getSize());
   }
 }
@@ -194,7 +195,7 @@ void applyGravity(){
 void bounceBottom(int surface, Ball ball){
   ball.setY (surface - (ball.getSize()/2));
   ball.setSpeed(ball.getSpeed() * -1);
-  out.playNote(0.0, 0.9, new SineInstrument( 97.99) );
+  out.playNote(0.0, 0.3, new SineInstrument( Frequency.ofPitch( pitches[(int)map(ball.getX(), height/5, height, 0, pitches.length - 1)]).asHz() ) );
 }
 
 // whenever the top threshold is reached makes the ball move down
