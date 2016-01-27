@@ -1,4 +1,12 @@
+import ddf.minim.*;
+import ddf.minim.ugens.*;
 
+/**
+ * Ball class defines a single ball in the coordinate plane with its x and y coordinates
+ * Ball drops to the bottom and envokes a sound, after collision the ball jumps 
+ * All balls are assigned to user input from keyboard: first ball is connected to letter 'a', second - to 'b' and so on until letter 'z'
+ * Balls can be stopped at any time of their movement, however due to conservation of energy after reenvoking, a ball won't jump higher than its original position (matter resistance is neglected)
+ **/
 // a class of balls jumping in the window
 class Ball{
   int ballX;
@@ -76,18 +84,57 @@ class Ball{
   }
 }
 
-// set of global variables 
+Minim minim = new Minim(this);
+AudioOutput out = minim.getLineOut();
+
+
+// to make an Instrument we must define a class
+// that implements the Instrument interface.
+class SineInstrument implements Instrument
+{
+  Oscil wave;
+  Line  ampEnv;
+  
+  SineInstrument( float frequency )
+  {
+    // make a sine wave oscillator
+    // the amplitude is zero because 
+    // we are going to patch a Line to it anyway
+    wave   = new Oscil( frequency, 0, Waves.SINE );
+    ampEnv = new Line();
+    ampEnv.patch( wave.amplitude );
+  }
+  
+  // this is called by the sequencer when this instrument
+  // should start making sound. the duration is expressed in seconds.
+  void noteOn( float duration )
+  {
+    // start the amplitude envelope
+    ampEnv.activate( duration, 0.5f, 0 );
+    // attach the oscil to the output so it makes sound
+    wave.patch( out );
+  }
+  
+  // this is called by the sequencer when the instrument should
+  // stop making sound
+  void noteOff()
+  {
+    wave.unpatch( out );
+  }
+}
+
+// all the balls on the screen stored in an array
 ArrayList<Ball> balls = new ArrayList<Ball>();
 
+// initial screen mode
 int gameScreen = 0;
 int gravity = 1;
 
 void setup(){
-  size(500,500);
-  
-  for (int i = 0; i < 23; i++){
+  size(600,500, P3D);
+  for (int i = 0; i < 26; i++){
     Ball ball = new Ball();
-    ball.setX(20 + 20*i);
+    ball.setX(40 + 20*i);
     ball.setY(height/5);
     ball.setColor(color(i * 5));
     ball.setSize(20);
@@ -99,20 +146,9 @@ void setup(){
 
 void draw(){
   if (gameScreen == 0){
-    initScreen();
-  } else if (gameScreen == 1){
     gameScreen();
-  } else if (gameScreen == 2){
-    gameOverScreen();
-  }
-}
-
-void initScreen(){
-  background(0);
-  textAlign(CENTER);
-  text("Click to start", height/2, width/2);
-  if (mousePressed){
-    startGame();
+  } else if (gameScreen == 1){
+    gameReloadScreen();
   }
 }
 
@@ -125,10 +161,18 @@ void gameScreen(){
     
 }
 
-void gameOverScreen(){
-  background(100);
+// returns the balls to their initial states 
+void gameReloadScreen(){
+  background(255);
+  for (int i = 0; i < balls.size(); i++){
+    balls.get(i).setY(height/5);
+    balls.get(i).setSpeed(0);
+    balls.get(i).setMoving(false);
+  }
+  gameScreen = 0;
 }
 
+// draws all the balls in the current positions
 void drawBalls(){
   for (int i = 0; i < balls.size(); i++){
     fill(random(255), random(255), random(255));
@@ -136,6 +180,7 @@ void drawBalls(){
   }
 }
 
+// applying the gravitational force on the balls updates the velocity and y-coordinate
 void applyGravity(){
   for (int i = 0; i < balls.size(); i++) {
     if (balls.get(i).getMoving()){
@@ -145,16 +190,20 @@ void applyGravity(){
   }
 }
 
+// whenever the bottom is reached makes the ball move up 
 void bounceBottom(int surface, Ball ball){
   ball.setY (surface - (ball.getSize()/2));
   ball.setSpeed(ball.getSpeed() * -1);
+  out.playNote(0.0, 0.9, new SineInstrument( 97.99) );
 }
 
+// whenever the top threshold is reached makes the ball move down
 void bounceTop(int surface, Ball ball){
   ball.setY(surface + ball.getSize()/2);
   ball.setSpeed(ball.getSpeed() * -1);
 }
 
+// assures that the ball doesn't go beyond the screen/specified top
 void keepInScreen(){
   for (int i = 0; i < balls.size(); i++){
       if (balls.get(i).getY() + (balls.get(i).getSize()/2) > height){
@@ -168,20 +217,18 @@ void keepInScreen(){
   }
 }
 
+// makes a certain ball move/freeze 
 public void keyPressed(){
   if (keyCode == 8){
-    gameScreen = 2;
-  } else if (keyCode > 64 && keyCode < 88){
+    gameScreen = 1;
+  } else if (keyCode > 64 && keyCode < 91){
     movingRoutine(keyCode);
   }
 }
 
-void startGame(){
-  gameScreen = 1;
-}
-
+// makes the ball freeze if it was previously moving and vice versa
 void movingRoutine(int code){
-  int keyC = code - 65;
+  int keyC = code - 65; // to range the code of the key to 0 - 25
   if (balls.get(keyC).getMoving()){
       balls.get(keyC).setMoving(false);
       balls.get(keyC).setSpeed(0);
