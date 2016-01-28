@@ -9,10 +9,10 @@ import ddf.minim.ugens.*;
  **/
 // a class of balls jumping in the window
 class Ball{
-  int ballX;
-  int ballY;
+  float ballX;
+  float ballY;
   int ballColor;
-  int ballSpeed;
+  float ballSpeed;
   int ballSize;
   int ballKeyCode;
   boolean moving;
@@ -27,19 +27,19 @@ class Ball{
     ballKeyCode = 49;
   }
   
-  void setX(int x){
+  void setX(float x){
     ballX = x;
   }
   
-  int getX(){
+  float getX(){
     return ballX;
   }
   
-  void setY(int y){
+  void setY(float y){
     ballY = y;
   }
   
-  int getY(){
+  float getY(){
     return ballY;
   }
   
@@ -51,11 +51,11 @@ class Ball{
     return ballSize;
   }
   
-  void setSpeed(int speed){
+  void setSpeed(float speed){
     ballSpeed = speed;
   }
   
-  int getSpeed(){
+  float getSpeed(){
     return ballSpeed;
   }
   
@@ -129,16 +129,17 @@ String[] pitches = {"C3","D3","E3","F3","G3","A3","B3","C4","D4","E4","F4","G4",
 
 // initial screen mode
 int gameScreen = 0;
-int gravity = 1;
+float gravity = 0.3;
 
 void setup(){
-  size(600,500, P3D);
+  size(800,500, P3D);
   for (int i = 0; i < 26; i++){
     Ball ball = new Ball();
-    ball.setX(40 + 20*i);
-    ball.setY(height/5);
+    ball.setX(20 + 30*i);
+    ball.setY(20);
     ball.setColor(color(i * 5));
     ball.setSize(20);
+    ball.setKey(49 + i);
     balls.add(ball);
   }
   
@@ -176,8 +177,28 @@ void gameReloadScreen(){
 // draws all the balls in the current positions
 void drawBalls(){
   for (int i = 0; i < balls.size(); i++){
-    fill(map(balls.get(i).getY(), height/5, height, 255, 0));
     ellipse(balls.get(i).getX(),balls.get(i).getY(), balls.get(i).getSize(), balls.get(i).getSize());
+    //noFill();
+    if (balls.get(i).getY() != 135)
+      line(balls.get(i).getX(), 135, balls.get(i).getX(),balls.get(i).getY() - 10);
+    
+    /*if (i == 0){
+      translate(40,20,0);
+    } else {
+      translate(40,0,0);
+    }
+     
+    noFill();
+    stroke(0);
+    sphere(balls.get(i).getSize());*/
+  }
+  
+  drawBars();
+}
+
+void drawBars(){
+  for (int i = 0; i < balls.size(); i++){
+    rect(balls.get(i).getX() - 15, height - 10, 30, 10);
   }
 }
 
@@ -193,9 +214,10 @@ void applyGravity(){
 
 // whenever the bottom is reached makes the ball move up 
 void bounceBottom(int surface, Ball ball){
+  colorOn = true;
   ball.setY (surface - (ball.getSize()/2));
   ball.setSpeed(ball.getSpeed() * -1);
-  out.playNote(0.0, 0.3, new SineInstrument( Frequency.ofPitch( pitches[(int)map(ball.getX(), height/5, height, 0, pitches.length - 1)]).asHz() ) );
+  out.playNote(0.0, 0.3, new SineInstrument( Frequency.ofPitch( pitches[(int)map(ball.getKey() - 49, 0, balls.size(), 0, pitches.length - 1)]).asHz() ) );
 }
 
 // whenever the top threshold is reached makes the ball move down
