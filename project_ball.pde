@@ -1,5 +1,6 @@
 import ddf.minim.*;
 import ddf.minim.ugens.*;
+PFont f;
 
 /**
  * Ball class defines a single ball in the coordinate plane with its x and y coordinates
@@ -11,6 +12,7 @@ import ddf.minim.ugens.*;
 class Ball{
   float ballX;
   float ballY;
+  float currY;
   int ballColor;
   float ballSpeed;
   int ballSize;
@@ -25,6 +27,7 @@ class Ball{
     ballSize = 20;
     moving = false;
     ballKeyCode = 'q';
+    currY = 0;
   }
   
   void setX(float x){
@@ -82,6 +85,14 @@ class Ball{
   void setKey(char code){
     ballKeyCode = code;
   }
+  
+  float getCurrY(){
+    return currY;
+  }
+  
+  void setCurrY(float curr){
+    currY = curr;
+  }
 }
 
 Minim minim = new Minim(this);
@@ -131,71 +142,108 @@ char[] buttons = {'q','w','e','r','t','y','u','i','o','p','a','s','d','f','g','h
 // initial screen mode
 int gameScreen = 0;
 float gravity = 0.08;
-
+// assign by default mode 1
+boolean mode1 = true;
+int prevScreen = 1;
 void setup(){
   size(800,500, P3D);
+  f = createFont("Arial", 32);
   for (int i = 0; i < 26; i++){
     Ball ball = new Ball();
     ball.setX(20 + 30*i);
     ball.setY(20);
+    ball.setCurrY(20);
     ball.setColor(color(i * 5));
     ball.setSize(20);
     ball.setKey(buttons[i]);
     balls.add(ball);
   }
-  
-  drawBalls();
 }
 
 void draw(){
   if (gameScreen == 0){
+    initScreen();
+  } else if (gameScreen == 1 || gameScreen == 4){
     gameScreen();
-  } else if (gameScreen == 1){
+  } else if (gameScreen == 2){
     gameReloadScreen();
+  } else if (gameScreen == 3){
+    byeScreen();
   }
 }
 
-void gameScreen(){
+void initScreen(){
   background(255);
-  
+  textFont(f,40);
+  fill(0);
+  text("Welcome to the MusicBall game!", width*0.1, height*0.3); 
+  textFont(f,20);
+  text("Press 1 or 2 to start and 3 to come later!", width*0.4, height*0.55); 
+  pushMatrix();
+  translate(300, height*0.45, -200);
+  rotateY(1.25);
+  rotateX(-0.4);
+  stroke(0);
+  noFill();
+  sphere(280);
+  popMatrix();
+}
+void gameScreen(){
+  background(0);
+  textFont(f,10);
+  fill(255);
+  text("Balls' accelaration " + gravity, width*0.8, height*0.05);
+  text("Press BACKSPACE to reset", width*0.8, height*0.1);
+  text("Press 3 to exit the game", width*0.8, height*0.15);
+  noFill();
   drawBalls();
   applyGravity();
   keepInScreen();
-    
+}
+
+
+void byeScreen(){
+  background(0);
+  textFont(f,40);
+  fill(255);
+  text("See you later!", width*0.1, height*0.4); 
+  pushMatrix();
+  translate(600, height*0.65, -200);
+  noFill();
+  stroke(255);
+  rotateY(1.25);
+  rotateX(-0.4);
+  sphere(180);
+  popMatrix();
+  //frame.setVisible(false);
 }
 
 // returns the balls to their initial states 
 void gameReloadScreen(){
-  background(255);
+  background(0);
   for (int i = 0; i < balls.size(); i++){
     balls.get(i).setY(height/5);
     balls.get(i).setSpeed(0);
     balls.get(i).setMoving(false);
   }
-  gameScreen = 0;
+  gameScreen = prevScreen;
 }
 
 // draws all the balls in the current positions
 void drawBalls(){
+  
   for (int i = 0; i < balls.size(); i++){
     if (balls.get(i).getMoving()){
-      fill(balls.get(((int)balls.get(i).getY() % balls.size())).getColor() - 30, 5*i, 3*i);
+      float c = map(balls.get(i).getY(),balls.get(i).getCurrY(), height -15, 255,0);
+      fill(c);
     }
     ellipse(balls.get(i).getX(),balls.get(i).getY(), balls.get(i).getSize(), balls.get(i).getSize());
     noFill();
     // drawing a string whenever the ball hangs
-    if (balls.get(i).getY() != 135)
+    if (balls.get(i).getY() != 135){
+      stroke(255);
       line(balls.get(i).getX(), 135, balls.get(i).getX(),balls.get(i).getY() - 10);
-    
-    /*if (i == 0){
-      translate(40,20,0);
-    } else {
-      translate(40,0,0);
     }
-     
-    noFill();
-    stroke(0);
-    sphere(balls.get(i).getSize());*/
   }
   
   drawBars();
@@ -221,9 +269,11 @@ void applyGravity(){
 void bounceBottom(int surface, Ball ball){
   ball.setY (surface - (ball.getSize()/2));
   ball.setSpeed(ball.getSpeed() * -1);
-  //out.playNote(0.0, 0.3, new SineInstrument( Frequency.ofPitch( pitches[(int)map(ball.getKey() - 49, 0, balls.size() - 1, 0, pitches.length - 1)]).asHz()));
   // plays a note for each hit of the bottom mapping every ball to the range [440,4000] Hz
-  out.playNote(0.0, 0.3, new SineInstrument(map(ball.getKey() - 49, 0, balls.size() - 1, 440, 4000)));
+  if (gameScreen == 1)
+    out.playNote(0.0, 0.3, new SineInstrument(map(balls.indexOf(ball), 0, balls.size() - 1, 60, 1000)));
+  else if (gameScreen == 4)
+    out.playNote(0.0, 0.3, new SineInstrument(map(ball.getCurrY(), height/5, height, 1000, 60)));
   fill(255,0,0);
   rect(ball.getX() - 15, height - 15, 30, 15);
   noFill();
@@ -252,19 +302,51 @@ void keepInScreen(){
 // makes a certain ball move/freeze 
 public void keyPressed(){
   if (keyCode == 8){
+    prevScreen = gameScreen;
+    gameScreen = 2;
+  } else if (key == '1'){
     gameScreen = 1;
-  } else if (keyCode > 64 && keyCode < 91){
-    movingRoutine(keyCode);
+    //mode1 = true;
+  } else if (key == '2'){
+    gameScreen = 4;
+    //mode1 = false;
+  } else if (key == '3'){
+    gameScreen = 3;
+  }else if (key >= 'a' && key <= 'z'){
+    movingRoutine(key);
+  } else if (keyCode == 38){
+    if (gravity > 1){
+       gravity = 0.5;
+    } else 
+       gravity += 0.1;
+  } else if (keyCode == 40){
+    if (gravity < 0){
+      gravity = 0;
+    } else { 
+      gravity -= 0.1;
+    }
   }
 }
 
 // makes the ball freeze if it was previously moving and vice versa
-void movingRoutine(int code){
-  int keyC = code - 65; // to range the code of the key to 0 - 25
-  if (balls.get(keyC).getMoving()){
-      balls.get(keyC).setMoving(false);
-      balls.get(keyC).setSpeed(0);
-    } else { 
-      balls.get(keyC).setMoving(true);
+void movingRoutine(char code){
+  int keyC = -1;
+  for (int i = 0; i < balls.size(); i++){
+    if (balls.get(i).getKey() == code){
+      keyC = i;
+      break;
     }
+  }
+  
+  try{
+    if (balls.get(keyC).getMoving()){
+        balls.get(keyC).setMoving(false);
+        balls.get(keyC).setSpeed(0);
+      } else {
+        balls.get(keyC).setCurrY(balls.get(keyC).getY());
+        balls.get(keyC).setMoving(true);
+      }
+  } catch (Exception e){
+    println("Error occured");
+  } 
 }
