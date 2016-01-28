@@ -14,7 +14,7 @@ class Ball{
   int ballColor;
   float ballSpeed;
   int ballSize;
-  int ballKeyCode;
+  char ballKeyCode;
   boolean moving;
   
   Ball(){
@@ -24,7 +24,7 @@ class Ball{
     ballSpeed = 0;
     ballSize = 20;
     moving = false;
-    ballKeyCode = 49;
+    ballKeyCode = 'q';
   }
   
   void setX(float x){
@@ -75,11 +75,11 @@ class Ball{
     return moving;
   }
   
-  int getKey(){
+  char getKey(){
     return ballKeyCode;
   }
   
-  void setKey(int code){
+  void setKey(char code){
     ballKeyCode = code;
   }
 }
@@ -126,10 +126,11 @@ class SineInstrument implements Instrument
 // all the balls on the screen stored in an array
 ArrayList<Ball> balls = new ArrayList<Ball>();
 String[] pitches = {"C3","D3","E3","F3","G3","A3","B3","C4","D4","E4","F4","G4","A4","B4","C5","D5","E5","F5","G5","A5","B5"};
+char[] buttons = {'q','w','e','r','t','y','u','i','o','p','a','s','d','f','g','h','j','k','l','z','x','c','v','b','n','m'};
 
 // initial screen mode
 int gameScreen = 0;
-float gravity = 0.3;
+float gravity = 0.08;
 
 void setup(){
   size(800,500, P3D);
@@ -139,7 +140,7 @@ void setup(){
     ball.setY(20);
     ball.setColor(color(i * 5));
     ball.setSize(20);
-    ball.setKey(49 + i);
+    ball.setKey(buttons[i]);
     balls.add(ball);
   }
   
@@ -177,8 +178,12 @@ void gameReloadScreen(){
 // draws all the balls in the current positions
 void drawBalls(){
   for (int i = 0; i < balls.size(); i++){
+    if (balls.get(i).getMoving()){
+      fill(balls.get(((int)balls.get(i).getY() % balls.size())).getColor() - 30, 5*i, 3*i);
+    }
     ellipse(balls.get(i).getX(),balls.get(i).getY(), balls.get(i).getSize(), balls.get(i).getSize());
-    //noFill();
+    noFill();
+    // drawing a string whenever the ball hangs
     if (balls.get(i).getY() != 135)
       line(balls.get(i).getX(), 135, balls.get(i).getX(),balls.get(i).getY() - 10);
     
@@ -198,7 +203,7 @@ void drawBalls(){
 
 void drawBars(){
   for (int i = 0; i < balls.size(); i++){
-    rect(balls.get(i).getX() - 15, height - 10, 30, 10);
+    rect(balls.get(i).getX() - 15, height - 15, 30, 15);
   }
 }
 
@@ -214,10 +219,14 @@ void applyGravity(){
 
 // whenever the bottom is reached makes the ball move up 
 void bounceBottom(int surface, Ball ball){
-  colorOn = true;
   ball.setY (surface - (ball.getSize()/2));
   ball.setSpeed(ball.getSpeed() * -1);
-  out.playNote(0.0, 0.3, new SineInstrument( Frequency.ofPitch( pitches[(int)map(ball.getKey() - 49, 0, balls.size(), 0, pitches.length - 1)]).asHz() ) );
+  //out.playNote(0.0, 0.3, new SineInstrument( Frequency.ofPitch( pitches[(int)map(ball.getKey() - 49, 0, balls.size() - 1, 0, pitches.length - 1)]).asHz()));
+  // plays a note for each hit of the bottom mapping every ball to the range [440,4000] Hz
+  out.playNote(0.0, 0.3, new SineInstrument(map(ball.getKey() - 49, 0, balls.size() - 1, 440, 4000)));
+  fill(255,0,0);
+  rect(ball.getX() - 15, height - 15, 30, 15);
+  noFill();
 }
 
 // whenever the top threshold is reached makes the ball move down
@@ -229,8 +238,8 @@ void bounceTop(int surface, Ball ball){
 // assures that the ball doesn't go beyond the screen/specified top
 void keepInScreen(){
   for (int i = 0; i < balls.size(); i++){
-      if (balls.get(i).getY() + (balls.get(i).getSize()/2) > height){
-           bounceBottom(height, balls.get(i));
+      if (balls.get(i).getY() + (balls.get(i).getSize()/2) > (height - 15)){
+           bounceBottom((height - 15), balls.get(i));
       }
       
       if (balls.get(i).getY() - (balls.get(i).getSize()/2) < height/4){
