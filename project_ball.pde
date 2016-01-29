@@ -35,6 +35,8 @@ class Ball{
     prevY = 0;
   }
   
+ 
+  
   void setX(float x){
     ballX = x;
   }
@@ -141,6 +143,8 @@ float gravity = 0.1;
 // keeps track of the current playmode in case of resets
 int prevScreen = 0;
 
+ArrayList<ParticleSystem> pses = new ArrayList<ParticleSystem>();
+ 
 void setup(){
   //3D layout for the initial and last screen modes 
   size(800,500, P3D);
@@ -159,7 +163,10 @@ void setup(){
     ball.setprevY(20);
     ball.setKey(buttons[i]);
     balls.add(ball);
+    
+    pses.add(new ParticleSystem(new PVector(border + x*i,height-15)));
   }
+    
 }
 
 void draw(){
@@ -178,7 +185,7 @@ void initScreen(){
   background(255);
   textFont(f,40);
   fill(0);
-  text("Welcome to the MusicBall game!", width*0.1, height*0.3); 
+  text("Welcome to MusicBall!", width*0.24, height*0.3); 
   textFont(f,20);
   text("Press 1 to play PitchBall, 2 to play PitchHeight and 3 to come later!", width*0.1, height*0.95); 
   // puts the sphere on the separate layer
@@ -215,6 +222,7 @@ void gameScreen(){
   text("Press BACKSPACE to reset", width*0.7, height*0.15);
   text("Press 3 to exit the game", width*0.7, height*0.2);
   noFill();
+  
   drawBalls();
   applyGravity();
   keepInScreen();
@@ -308,10 +316,12 @@ void bounceBottom(int surface, Ball ball){
     // if the game mode is 2
     out.playNote(0.0, 0.3, new SineInstrument(map(ball.getprevY(), height/5, height, 1000, 60)));
   }
+  
   // makes a red blink of the rectangle when is hit
   fill(255,0,0);
   rect(ball.getX() - 15, height - 15, (width-40)/26, 15);
   noFill();
+ 
 }
 
 // whenever the top threshold is reached makes the ball move down
@@ -324,14 +334,29 @@ void bounceTop(int surface, Ball ball){
 // assures that the ball doesn't go beyond the screen/specified top
 void keepInScreen(){
   for (int i = 0; i < balls.size(); i++){
+    
+      //partcls();
+
       // bounces whenever a brick is reached (15 height of the brick)
       if (balls.get(i).getY() + (balls.get(i).getSize()/2) > (height - 15)){
+        
+           pses.get(i).addParticles();
+           pses.get(i).run();
+           
            bounceBottom((height - 15), balls.get(i));
       }
+      
       // falls down when the top is reached
       if (balls.get(i).getY() - (balls.get(i).getSize()/2) < height/4){
           bounceTop(height/4,balls.get(i));
       }
+      
+      //deals with the life of particles where they still exist
+      if((pses.get(i)).particles.size() != 0){
+          pses.get(i).run();
+      }
+      
+      
          
   }
 }
@@ -394,4 +419,82 @@ void movingRoutine(char code){
     println("Error occured");
     exit();
   } 
+}
+
+
+ // A class to describe a group of Particles
+// An ArrayList is used to manage the list of Particles 
+
+class ParticleSystem {
+  ArrayList<Particle> particles;
+  PVector origin;
+
+  ParticleSystem(PVector location) {
+    origin = location.get();
+    particles = new ArrayList<Particle>();
+    
+
+}
+
+  void addParticles() {
+        for (int i = 20; i >= 0; i--) {   
+         particles.add(new Particle(origin));
+    }
+  }
+
+  void run() {
+    for (int i = particles.size()-1; i >= 0; i--) {
+      Particle p = particles.get(i);
+      p.run();
+      if (p.isDead()) {
+        particles.remove(i);
+      }
+    }
+  }
+}
+
+
+
+// A simple Particle class
+
+class Particle {
+  PVector location;
+  PVector velocity;
+  PVector acceleration;
+  float lifespan;
+
+  Particle(PVector l) {
+    acceleration = new PVector(0,0.05);
+    velocity = new PVector(random(-0.5,0.5),random(-2.5,0));
+    location = l.get();
+    lifespan = 255.0;
+  }
+
+  void run() {
+    update();
+    display();
+  }
+
+  // Method to update location
+  void update() {
+    velocity.add(acceleration);
+    location.add(velocity);
+    lifespan -= 1.0;
+  }
+
+  // Method to display
+  void display() {
+    stroke(255,lifespan);
+    fill(255,lifespan);
+    ellipse(location.x,location.y,2,2);
+  }
+  
+  // Is the particle still useful?
+  boolean isDead() {
+    if (lifespan < 0.0) {
+      return true;
+    } else {
+      return false;
+    }
+  }
 }
