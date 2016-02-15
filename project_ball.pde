@@ -147,7 +147,7 @@ ArrayList<ParticleSystem> pses = new ArrayList<ParticleSystem>();
  
 void setup(){
   //3D layout for the initial and last screen modes 
-  size(800,500, P3D);
+  size(1000,600, P3D);
   //text formatting
   f = createFont("Arial", 32);
   //initialization of the balls
@@ -175,7 +175,7 @@ void draw(){
   } else if (gameScreen == 1 || gameScreen == 2){ // gameScreens in both playmodes
     gameScreen();
   } else if (gameScreen == 4){ // reseting the current state of the balls, mode choice is kept
-    gameReloadScreen();
+    gameReloadScreen(false);
   } else if (gameScreen == 3){
     byeScreen();
   }
@@ -249,7 +249,7 @@ void byeScreen(){
 }
 
 // resets the states of all the balls
-void gameReloadScreen(){
+void gameReloadScreen(boolean diffPage){
   background(0);
   for (int i = 0; i < balls.size(); i++){
     balls.get(i).setY(height/5);
@@ -258,8 +258,9 @@ void gameReloadScreen(){
   }
   gravity = 0.1;
   // the game mode is kept
-  if (prevScreen != 0)
+  if (prevScreen != 0 && diffPage == false){
     gameScreen = prevScreen;
+  }
 }
 
 // draws all the balls in their positions
@@ -369,12 +370,12 @@ public void keyPressed(){
   } else if (key == '1'){ // game mode 1
     gameScreen = 1;
     // in case of changing modes while one is on, automatically reload the screen
-    gameReloadScreen();  
+    gameReloadScreen(true);  
     //mode1 = true;
   } else if (key == '2'){ // game mode 2
     gameScreen = 2;
     // in case of changing modes while two is on, automatically reload the screen
-    gameReloadScreen();
+    gameReloadScreen(true);
     //mode1 = false;
   } else if (key == '3'){ // quit mode
     gameScreen = 3;
